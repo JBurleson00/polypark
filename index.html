@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PolyPark Prototype</title>
+<style>
+  :root {
+    --green: #154734; --green-dark: #0c3023; --gold: #f0ab00; --ink: #222; --muted: #787c80;
+    --paper: #f6f7f4; --line: #dee0dc; --open: #dff0d8; --taken: #e2e2e2; --danger: #a4262c;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif; color: var(--ink);
+    background: #e9ece8; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  .phone {
+    width: 390px; height: min(844px, calc(100vh - 56px)); background: var(--paper); border: 11px solid #1c1c1e;
+    border-radius: 52px; overflow: hidden; display: flex; flex-direction: column; position: relative;
+    box-shadow: 0 20px 50px rgba(0,0,0,.25);
+  }
+  .caption { font-size: 12px; color: var(--muted); margin-top: 10px; }
+  @media (max-width: 480px) {
+    body { background: var(--paper); justify-content: flex-start; }
+    .phone { width: 100%; height: 100%; border: 0; border-radius: 0; box-shadow: none; }
+    .caption { display: none; }
+  }
+  .brand { flex: none; display: flex; align-items: center; gap: 11px; color: #fff; padding: 20px 18px 11px;
+    background: linear-gradient(135deg, #1b5a42 0%, var(--green) 45%, var(--green-dark) 100%); border-bottom: 4px solid var(--gold); }
+  .brand .word { font-size: 23px; font-weight: 800; letter-spacing: -.3px; line-height: 1; }
+  .brand .word span { color: var(--gold); }
+  .brand .tagline { font-size: 10.5px; letter-spacing: .9px; text-transform: uppercase; opacity: .85; margin-top: 4px; }
+  .brand .chip { margin-left: auto; font-size: 11px; font-weight: 700; color: var(--green-dark); background: var(--gold); border-radius: 12px; padding: 4px 10px; white-space: nowrap; }
+  header { background: #fff; border-bottom: 1px solid var(--line); padding: 11px 20px; flex: none; display: flex; align-items: center; gap: 8px; }
+  header h1 { font-size: 20px; margin: 0; }
+  header button { background: none; border: 0; color: var(--green); font-size: 28px; padding: 0 8px 3px 0; cursor: pointer; line-height: 1; }
+  main { flex: 1; overflow-y: auto; padding: 18px 20px 24px; }
+  nav { flex: none; display: flex; background: #fff; border-top: 1px solid var(--line); padding: 8px 0 14px; }
+  nav button { flex: 1; background: none; border: 0; font: inherit; font-size: 11px; color: var(--muted); cursor: pointer; padding: 4px 0; }
+  nav button .dot { display: block; width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--muted); margin: 0 auto 5px; }
+  nav button.on { color: var(--green); font-weight: 700; }
+  nav button.on .dot { background: var(--green); border-color: var(--green); }
+  nav button svg { display: block; width: 24px; height: 24px; margin: 0 auto 4px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  nav button.on svg { fill: rgba(21,71,52,.12); }
+  nav button .badge { position: absolute; top: 0; left: 50%; margin-left: 6px; width: 9px; height: 9px; border-radius: 50%; background: var(--gold); border: 2px solid #fff; }
+  nav button { position: relative; }
+  main.enter { animation: enter .22s ease-out; }
+  @keyframes enter { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
+  .sheet { animation: fade .15s ease-out; } .sheet > div { animation: rise .22s ease-out; }
+  @keyframes fade { from { opacity: 0; } } @keyframes rise { from { transform: translateY(40px); } }
+  .live { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: var(--green); background: #e3efe6; border-radius: 10px; padding: 3px 9px; margin-left: 8px; vertical-align: 2px; }
+  .live i { width: 7px; height: 7px; border-radius: 50%; background: #2e9e5b; animation: pulse 1.6s infinite; }
+  @keyframes pulse { 50% { opacity: .25; } }
+  .quick { width: 100%; text-align: left; font: inherit; cursor: pointer; border: 0; color: #fff; display: flex; align-items: center; gap: 12px;
+    background: linear-gradient(135deg, #1b5a42, var(--green-dark)); border-radius: 14px; padding: 14px 16px; margin-bottom: 16px; }
+  .quick b { display: block; font-size: 16px; } .quick span span { font-size: 13px; opacity: .85; }
+  .quick .go { margin-left: auto; background: var(--gold); color: var(--ink); font-weight: 700; font-size: 13px; border-radius: 10px; padding: 7px 12px; }
+  .toast { position: absolute; left: 20px; right: 20px; bottom: 96px; background: #1c1c1e; color: #fff; font-size: 14px; border-radius: 12px; padding: 12px 14px; text-align: center; animation: rise .2s ease-out; box-shadow: 0 6px 18px rgba(0,0,0,.3); }
+  .ring { position: relative; width: 216px; height: 216px; margin: 6px auto 8px; }
+  .ring .timer { font-size: 42px; }
+  .ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .ring circle { fill: none; stroke-width: 12; }
+  .ring .track { stroke: #e3e8e3; } .ring .bar { stroke: var(--green); stroke-linecap: round; transition: stroke-dashoffset .9s linear, stroke .3s; }
+  .ring .bar.low { stroke: var(--danger); }
+  .ring .in { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .grid button.open:hover { border-color: var(--green); }
+  button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+  .demo { display: block; margin: 16px auto 0; background: none; border: 0; font: inherit; font-size: 12px; color: var(--muted); text-decoration: underline; cursor: pointer; }
+  h2 { font-size: 17px; margin: 0 0 4px; }
+  p.sub { font-size: 13px; color: var(--muted); margin: 0 0 14px; }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; margin-bottom: 10px; }
+  button.row { width: 100%; text-align: left; font: inherit; cursor: pointer; display: flex; align-items: center; gap: 10px; }
+  button.row:hover, button.row:focus-visible { border-color: var(--green); background: #eef4ef; outline: none; }
+  .row .name { font-weight: 700; font-size: 17px; }
+  .row .where { font-size: 13px; color: var(--muted); margin-top: 3px; }
+  .row .count { margin-left: auto; font-weight: 700; font-size: 15px; color: var(--green); white-space: nowrap; }
+  .row .count.full { color: var(--muted); }
+  .chev { color: var(--muted); font-size: 20px; }
+  .tag { display: inline-block; background: #fdf0cd; color: #8c6000; font-size: 11px; font-weight: 700; border-radius: 10px; padding: 2px 9px; margin-left: 6px; vertical-align: 2px; }
+  .map { border-radius: 16px; position: relative; overflow: hidden; border: 1px solid var(--line); }
+  .map svg { display: block; width: 100%; height: auto; }
+  .map button.pin { position: absolute; min-width: 34px; height: 30px; padding: 0 7px; border-radius: 15px; border: 2px solid #fff; background: var(--green); color: #fff; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; transform: translate(-50%, -50%); box-shadow: 0 2px 5px rgba(0,0,0,.3); }
+  .map button.pin.full { background: var(--muted); }
+  .map button.pin.pref { background: var(--gold); color: var(--ink); }
+  .mapnote { font-size: 11px; color: var(--muted); margin: 5px 2px 16px; }
+  .grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin: 12px 0; }
+  .grid button { aspect-ratio: 7 / 8; border-radius: 9px; border: 2px solid transparent; font: inherit; font-weight: 700; font-size: 15px; }
+  .grid button.open { background: var(--open); color: var(--green); cursor: pointer; }
+  .grid button.taken { background: var(--taken); color: #a5a5a5; }
+  .grid button.pick { background: var(--gold); border-color: #aa7600; color: var(--ink); }
+  .legend { display: flex; gap: 18px; font-size: 12px; color: var(--muted); margin-bottom: 14px; }
+  .legend i { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; }
+  .btn { display: block; width: 100%; border: 0; border-radius: 14px; padding: 16px; font: inherit; font-size: 17px; font-weight: 700; color: #fff; background: var(--green); cursor: pointer; margin-top: 10px; }
+  .btn:active { background: var(--green-dark); }
+  .btn:disabled { background: #bcc4be; cursor: default; }
+  .btn.ghost { background: #fff; color: var(--green); border: 1px solid var(--line); font-size: 16px; }
+  .btn.danger { background: #fff; color: var(--danger); border: 1px solid var(--line); font-size: 16px; }
+  .center { text-align: center; }
+  .check { width: 92px; height: 92px; border-radius: 50%; background: var(--green); color: #fff; font-size: 52px; line-height: 92px; margin: 14px auto 16px; }
+  .big { font-size: 26px; font-weight: 700; margin: 0; }
+  .timer { font-size: 46px; font-weight: 700; color: var(--green); font-variant-numeric: tabular-nums; margin: 2px 0; }
+  .notice { background: #fdf0cd; border-radius: 12px; padding: 12px 14px; font-size: 14px; margin-bottom: 12px; }
+  .plate { font-family: ui-monospace, Menlo, monospace; font-weight: 700; background: #f1f1ee; border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; }
+  .line { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid var(--line); font-size: 15px; }
+  .line:first-of-type { border-top: 0; }
+  .line .grow { flex: 1; }
+  .mini { border: 1px solid var(--line); background: #fff; border-radius: 8px; font: inherit; font-size: 13px; padding: 5px 9px; cursor: pointer; color: var(--green); }
+  .mini:disabled { color: #bbb; cursor: default; }
+  input[type=text] { font: inherit; font-size: 15px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; width: 100%; margin-top: 8px; }
+  .login { flex: 1; background: var(--green); color: #fff; display: flex; flex-direction: column; justify-content: center; padding: 30px; text-align: center; }
+  .login h1 { font-size: 42px; margin: 10px 0 6px; letter-spacing: -.5px; }
+  .login h1 span { color: var(--gold); }
+  .login p { opacity: .85; margin: 0 0 40px; }
+  .login .btn { background: var(--gold); color: var(--ink); }
+  .sheet { position: absolute; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: flex-end; }
+  .sheet > div { background: #fff; width: 100%; border-radius: 22px 22px 0 0; padding: 22px 20px 26px; }
+  .sheet h2 { font-size: 19px; margin-bottom: 8px; }
+  .sheet p { font-size: 15px; margin: 0 0 6px; }
+  ol.steps { padding-left: 20px; margin: 8px 0 0; font-size: 15px; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="phone" id="app"></div>
+<div class="caption">PolyPark prototype · BUS 3394 · sample data only · R resets · F fast-forwards the hold by 5 minutes</div>
+
+<script>
+// A click-through prototype: the data is made up and nothing is saved.
+// Rules it follows from the PolyPark case: one reservation at a time, a 30-minute hold,
+// cancelling returns the spot to the open pool, the spot's sensor confirms arrival,
+// the license plate is the permit, and up to three vehicles per account.
+const HOLD_SECONDS = 30 * 60;
+const SPOTS_PER_LOT = 24;
+
+function freshState() {
+  // Real Cal Poly commuter lots; `spaces` is the commuter count from the campus parking page.
+  // Open counts are invented. The picker shows the 24 spots nearest the entrance;
+  // `elsewhere` is how many more are open in the rest of the lot.
+  const all = Array.from({ length: SPOTS_PER_LOT }, (_, i) => i + 1);
+  const lots = [
+    { id: 'H12', name: 'H-12', where: 'Pinnacles Road', road: 'Highland Drive', spaces: 426, pin: [34.5, 17], elsewhere: 49, taken: [1, 2, 5, 7, 9, 12, 15, 18, 21, 23] },
+    { id: 'H14', name: 'H-14', where: 'Via Carta', road: 'Highland Drive', spaces: 365, pin: [67, 21], elsewhere: 0, taken: all.filter(n => ![15, 20, 24].includes(n)) },
+    { id: 'H16', name: 'H-16', where: 'Off Highland Drive', road: 'Highland Drive', spaces: 526, pin: [46.5, 45], elsewhere: 104, taken: [3, 8, 14, 20] },
+    { id: 'GAS', name: 'Grand Avenue Structure', short: 'Grand Ave', where: 'Off Grand Avenue', road: 'Grand Avenue', spaces: 572, pin: [81, 74], elsewhere: 21, taken: [2, 6, 11, 19] },
+    { id: 'H1', name: 'H-1', where: 'Short-term commuter lot', road: 'Highland Drive', spaces: 364, pin: [11, 46], elsewhere: 0, taken: all },
+  ];
+  return {
+    signedIn: false, view: 'find', lotId: null, pick: null, sheet: null, adding: false, toast: null,
+    lots, preferred: ['H12', 'H16', 'GAS', 'H14', 'H1'],
+    reservation: null,            // { lotId, spot, endsAt, arrived }
+    vehicles: [{ plate: '8ABC123', car: 'Silver Honda Civic' }, { plate: '7XYZ890', car: 'Blue Toyota Tacoma' }],
+  };
+}
+let S = freshState();
+const app = document.getElementById('app');
+const lot = id => S.lots.find(l => l.id === id);
+const openCount = l => l.elsewhere + SPOTS_PER_LOT - l.taken.length;
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const fmt = secs => `${String(Math.floor(secs / 60)).padStart(2, '0')}:${String(secs % 60).padStart(2, '0')}`;
+const remaining = () => Math.max(0, Math.round((S.reservation.endsAt - Date.now()) / 1000));
+const RING = 2 * Math.PI * 88;
+const ringOffset = () => RING * (1 - remaining() / HOLD_SECONDS);
+const clock = ms => new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+
+let toastTimer = null;
+function toast(text) {
+  S.toast = text;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { S.toast = null; render(); }, 2600);
+}
+const gridOpen = l => Array.from({ length: SPOTS_PER_LOT }, (_, i) => i + 1).filter(n => !l.taken.includes(n));
+const quickLot = () => S.preferred.map(lot).find(l => gridOpen(l).length);
+function reserveSpot(l, spot) {
+  l.taken.push(spot);
+  S.reservation = { lotId: l.id, spot, endsAt: Date.now() + HOLD_SECONDS * 1000, arrived: false };
+  go('reserve', { pick: null });
+}
+
+function go(view, extra = {}) { Object.assign(S, { view, sheet: null, adding: false }, extra); render(); }
+
+function releaseSpot() {
+  const r = S.reservation;
+  lot(r.lotId).taken = lot(r.lotId).taken.filter(n => n !== r.spot);
+  S.reservation = null;
+}
+
+// ---------- screens
+const LOGO = size => `<svg viewBox="0 0 40 48" width="${size}" height="${size * 1.2}" aria-hidden="true">
+  <path d="M20 0C9 0 0 8.6 0 19.5 0 33 20 48 20 48s20-15 20-28.5C40 8.6 31 0 20 0z" fill="#f0ab00"/>
+  <path d="M13.5 9.5H23a7.6 7.6 0 0 1 0 15.2h-4.3V32h-5.2V9.5zm5.2 4.6v6h3.6a3 3 0 0 0 0-6h-3.6z" fill="#154734"/></svg>`;
+
+function loginScreen() {
+  return `<div class="login">
+    <div>${LOGO(64)}</div><h1>Poly<span>Park</span></h1><p>Cal Poly parking permits and reservations</p>
+    <button class="btn" data-act="signin">Sign in with Cal Poly</button>
+    <p style="font-size:12px;margin-top:18px">Prototype: no password needed</p></div>`;
+}
+
+function findScreen() {
+  const ordered = S.preferred.map(lot);
+  const pins = S.lots.map(l => `<button class="pin ${openCount(l) ? (l.id === S.preferred[0] ? 'pref' : '') : 'full'}" style="left:${l.pin[0]}%;top:${l.pin[1]}%"
+      data-act="lot" data-id="${l.id}" aria-label="${l.name}, ${openCount(l)} open">${l.short || l.name} · ${openCount(l) || 'Full'}</button>`).join('');
+  const rows = ordered.map((l, i) => `<button class="card row" data-act="lot" data-id="${l.id}">
+      <span><span class="name">${l.name}</span>${i === 0 ? '<span class="tag">Preferred</span>' : ''}
+      <div class="where">${l.where}</div></span>
+      <span class="count ${openCount(l) ? '' : 'full'}">${openCount(l) ? openCount(l) + ' open' : 'Full'}<div class="where" style="font-weight:400;text-align:right">of ${l.spaces}</div></span>
+      <span class="chev">›</span></button>`).join('');
+  const banner = S.reservation ? `<button class="notice" style="border:0;width:100%;text-align:left;font:inherit;cursor:pointer" data-act="tab" data-id="reserve">
+      <b>You have a spot reserved.</b> Spot ${S.reservation.spot}, ${lot(S.reservation.lotId).name}. Tap to view.</button>` : '';
+  const q = quickLot();
+  const quick = !S.reservation && q ? `<button class="quick" data-act="quick"><span><b>Reserve in ${q.name}</b>
+      <span>${q.id === S.preferred[0] ? 'Your top lot' : 'Your top lot is full'} · closest open spot, #${gridOpen(q)[0]}</span></span><span class="go">One tap</span></button>` : '';
+  return header('Find a spot') + `<main>${banner}${quick}
+    <div class="map">
+      <svg viewBox="0 0 350 230" role="img" aria-label="Schematic map of Cal Poly commuter lots">
+        <rect width="350" height="230" fill="#e6eee8"/>
+        <path d="M0 150 Q60 190 150 230 L0 230Z" fill="#d7e3da"/>
+        <rect x="150" y="128" width="118" height="78" rx="12" fill="#f3f1e7"/>
+        <text x="209" y="171" text-anchor="middle" font-size="10" font-weight="700" fill="#8a8672">CAMPUS CORE</text>
+        <g fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M-5 76 H232 Q246 76 246 92 V120"/>
+          <path d="M120 76 V14"/>
+          <path d="M232 76 V10"/>
+          <path d="M76 235 V76"/>
+          <path d="M300 235 V112 Q300 100 288 100 H246"/>
+        </g>
+        <g font-size="8" fill="#6f7a73" font-weight="600">
+          <text x="6" y="68">Highland Dr</text><text x="126" y="22">Pinnacles Rd</text>
+          <text x="238" y="18">Via Carta</text><text x="82" y="222">California Blvd</text>
+          <text x="256" y="222">Grand Ave</text>
+        </g>
+        <g fill="#bfd2c7" stroke="#a9c0b3">
+          <rect x="88" y="26" width="26" height="40" rx="5"/><rect x="238" y="30" width="46" height="36" rx="5"/>
+          <rect x="136" y="86" width="56" height="34" rx="5"/><rect x="14" y="86" width="50" height="38" rx="5"/>
+          <rect x="306" y="146" width="34" height="48" rx="5"/>
+        </g>
+      </svg>${pins}
+    </div>
+    <p class="mapnote">Schematic map of the commuter lots, not to scale. Tap a lot.</p>
+    <h2>Open spots right now<span class="live"><i></i>Live</span></h2><p class="sub">Counts come from the sensor in each space. Preferred lots first.</p>${rows}</main>` + tabs('find');
+}
+
+function lotScreen() {
+  const l = lot(S.lotId);
+  const mine = S.reservation && S.reservation.lotId === l.id ? S.reservation.spot : null;
+  const cells = Array.from({ length: SPOTS_PER_LOT }, (_, i) => i + 1).map(n => {
+    const taken = l.taken.includes(n);
+    const cls = n === S.pick || n === mine ? 'pick' : taken ? 'taken' : 'open';
+    return `<button class="${cls}" ${taken ? 'disabled' : `data-act="pick" data-id="${n}"`}>${n}</button>`;
+  }).join('');
+  let action;
+  if (S.reservation) {
+    action = `<div class="notice">You already have a reservation. PolyPark holds one spot at a time.</div>
+      <button class="btn" data-act="tab" data-id="reserve">View my reservation</button>`;
+  } else if (!openCount(l)) {
+    action = `<div class="notice">This lot is full. Try another lot.</div>`;
+  } else {
+    action = `<div class="card"><h2>${S.pick ? 'Spot ' + S.pick : 'No spot chosen'}</h2>
+        <p class="sub" style="margin:0">Held for 30 minutes after you reserve.<br>The sensor confirms when you arrive.</p></div>
+      <button class="btn" data-act="reserve" ${S.pick ? '' : 'disabled'}>${S.pick ? 'Reserve spot ' + S.pick : 'Choose a spot'}</button>`;
+  }
+  return header(l.name, true) + `<main><h2>Choose a spot</h2>
+    <p class="sub">${openCount(l)} of ${l.spaces} open · showing the 24 spots nearest the entrance</p>
+    <div class="grid">${cells}</div>
+    <div class="legend"><span><i style="background:var(--open)"></i>Open</span><span><i style="background:var(--taken)"></i>Taken</span>
+      <span><i style="background:var(--gold)"></i>Your pick</span></div>${action}</main>` + tabs('find');
+}
+
+function reserveScreen() {
+  const r = S.reservation;
+  if (!r) {
+    return header('My reservation') + `<main class="center"><div style="height:60px"></div>
+      <p class="big">No spot reserved</p><p class="sub" style="margin-top:8px">Reserve a spot before you leave for campus.<br>Reservations open at 5:00 AM each day.</p>
+      <button class="btn" data-act="tab" data-id="find">Find a spot</button></main>` + tabs('reserve');
+  }
+  const l = lot(r.lotId);
+  if (r.arrived) {
+    return header('Parked') + `<main class="center"><div class="check">✓</div>
+      <p class="big">You're parked</p><p class="sub" style="margin-top:6px">Spot ${r.spot} · ${l.name}<br>The spot's sensor confirmed your arrival.</p>
+      <button class="btn ghost" data-act="leave">I've left the spot</button></main>` + tabs('reserve');
+  }
+  return header('Reserved') + `<main class="center">
+    <p class="big">Spot ${r.spot} is yours</p><p class="sub" style="margin-top:4px">${l.name} · ${l.where}</p>
+    <div class="ring"><svg viewBox="0 0 200 200"><circle class="track" cx="100" cy="100" r="88"/>
+        <circle class="bar ${remaining() <= 300 ? 'low' : ''}" id="bar" cx="100" cy="100" r="88" stroke-dasharray="${RING}" stroke-dashoffset="${ringOffset()}"/></svg>
+      <div class="in"><div class="sub" style="margin:0">Held for</div><div class="timer" id="timer">${fmt(remaining())}</div>
+        <div class="sub" style="margin:0">Until ${clock(r.endsAt)}</div></div></div>
+    <button class="btn" data-act="sheet" data-id="directions">Get directions</button>
+    <button class="btn ghost" data-act="arrive">Simulate arriving at the spot</button>
+    <button class="btn danger" data-act="sheet" data-id="cancel">Cancel reservation</button>
+    <button class="demo" data-act="skip">Demo control: skip ahead 5 minutes</button></main>` + tabs('reserve');
+}
+
+function permitScreen() {
+  const cars = S.vehicles.map((v, i) => `<div class="line"><span class="plate">${esc(v.plate)}</span><span class="grow">${esc(v.car)}</span>
+      <button class="mini" data-act="removecar" data-id="${i}" ${S.vehicles.length === 1 ? 'disabled' : ''}>Remove</button></div>`).join('');
+  const add = S.adding
+    ? `<div class="card"><h2>Add a vehicle</h2>
+        <input type="text" id="plate" placeholder="License plate" maxlength="8" autocomplete="off">
+        <input type="text" id="car" placeholder="Color, make and model" maxlength="40" autocomplete="off">
+        <button class="btn" data-act="savecar">Save vehicle</button><button class="btn ghost" data-act="canceladd">Cancel</button></div>`
+    : `<button class="btn ghost" data-act="addcar" ${S.vehicles.length >= 3 ? 'disabled' : ''}>
+        ${S.vehicles.length >= 3 ? 'Three vehicles registered (the limit)' : 'Add a vehicle'}</button>`;
+  return header('My permit') + `<main>
+    <div class="card" style="background:var(--green);color:#fff;border:0">
+      <div style="font-size:12px;opacity:.8">2026–27 SCHOOL YEAR</div>
+      <div style="font-size:22px;font-weight:700;margin:4px 0">Student Commuter Permit</div>
+      <div style="font-size:14px">Active through June 2027</div></div>
+    <h2 style="margin-top:18px">Registered vehicles</h2><p class="sub">Your license plate is your permit. Up to three vehicles.</p>
+    <div class="card">${cars}</div>${add}</main>` + tabs('permit');
+}
+
+function accountScreen() {
+  const rows = S.preferred.map((id, i) => `<div class="line"><b style="width:18px">${i + 1}</b><span class="grow">${lot(id).name}</span>
+      <button class="mini" data-act="up" data-id="${i}" ${i === 0 ? 'disabled' : ''} aria-label="Move ${lot(id).name} up">▲</button>
+      <button class="mini" data-act="down" data-id="${i}" ${i === S.preferred.length - 1 ? 'disabled' : ''} aria-label="Move ${lot(id).name} down">▼</button></div>`).join('');
+  return header('Account') + `<main><div class="card"><div style="font-weight:700;font-size:17px">Sample Student</div>
+      <div class="where" style="font-size:13px;color:var(--muted)">Signed in with Cal Poly</div></div>
+    <h2 style="margin-top:18px">Preferred lots</h2><p class="sub">Ranked lots appear first when you look for a spot</p>
+    <div class="card">${rows}</div>
+    <button class="btn ghost" data-act="signout">Log out</button>
+    <button class="demo" data-act="reset">Demo control: reset the prototype</button></main>` + tabs('account');
+}
+
+function header(title, back) {
+  return `<div class="brand">${LOGO(30)}<div><div class="word">Poly<span>Park</span></div>
+      <div class="tagline">Cal Poly parking</div></div><span class="chip">Permit active</span></div>
+    <header>${back ? '<button data-act="tab" data-id="find" aria-label="Back">‹</button>' : ''}<h1>${title}</h1></header>`;
+}
+const ICONS = {
+  find: '<path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',
+  reserve: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/>',
+  permit: '<rect x="3" y="6" width="18" height="12" rx="2.5"/><path d="M3 10.5h18M7 15h4"/>',
+  account: '<circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c1.2-3.6 4-5.2 7.5-5.2s6.300 1.600 7.500 5.200"/>',
+};
+function tabs(on) {
+  return '<nav>' + [['find', 'Map'], ['reserve', 'Reserve'], ['permit', 'Permit'], ['account', 'Account']]
+    .map(([id, label]) => `<button class="${id === on ? 'on' : ''}" data-act="tab" data-id="${id}"><svg viewBox="0 0 24 24">${ICONS[id]}</svg>${
+      id === 'reserve' && S.reservation ? '<span class="badge"></span>' : ''}${label}</button>`).join('') + '</nav>';
+}
+function sheet() {
+  if (S.sheet === 'cancel') {
+    return `<div class="sheet"><div><h2>Cancel this reservation?</h2>
+      <p>Spot ${S.reservation.spot} goes back to the open pool right away.</p>
+      <button class="btn danger" data-act="cancelres">Yes, cancel it</button><button class="btn ghost" data-act="closesheet">Keep my spot</button></div></div>`;
+  }
+  if (S.sheet === 'directions') {
+    const l = lot(S.reservation.lotId);
+    return `<div class="sheet"><div><h2>Directions to spot ${S.reservation.spot}</h2>
+      <ol class="steps"><li>Enter campus on ${l.road}.</li><li>Turn into ${l.name}.</li>
+      <li>Spot ${S.reservation.spot} is in row ${Math.ceil(S.reservation.spot / 6)}. Look for the green light.</li></ol>
+      <button class="btn" data-act="closesheet">Done</button></div></div>`;
+  }
+  if (S.sheet === 'expired') {
+    return `<div class="sheet"><div><h2>Your hold ended</h2><p>The 30 minutes passed, so the spot went back to the open pool.</p>
+      <button class="btn" data-act="closesheet">OK</button></div></div>`;
+  }
+  return '';
+}
+
+let lastView = null;
+function render() {
+  const screens = { find: findScreen, lot: lotScreen, reserve: reserveScreen, permit: permitScreen, account: accountScreen };
+  const scroll = app.querySelector('main') ? app.querySelector('main').scrollTop : 0;
+  app.innerHTML = S.signedIn
+    ? screens[S.view]() + (S.toast ? `<div class="toast" role="status">${esc(S.toast)}</div>` : '') + sheet()
+    : loginScreen();
+  const main = app.querySelector('main');
+  const key = S.signedIn ? S.view + (S.view === 'lot' ? S.lotId : '') : 'login';
+  if (main && key !== lastView) main.classList.add('enter');
+  else if (main) main.scrollTop = scroll;
+  lastView = key;
+}
+
+// ---------- actions
+const actions = {
+  signin: () => { S.signedIn = true; go('find'); },
+  signout: () => { const keep = S; S = freshState(); S.lots = keep.lots; S.reservation = keep.reservation; S.vehicles = keep.vehicles; S.preferred = keep.preferred; render(); },
+  tab: id => go(id, { pick: null }),
+  lot: id => go('lot', { lotId: id, pick: null }),
+  pick: id => { if (!S.reservation) { S.pick = Number(id); render(); } },
+  reserve: () => reserveSpot(lot(S.lotId), S.pick),
+  quick: () => { const l = quickLot(); reserveSpot(l, gridOpen(l)[0]); },
+  sheet: id => { S.sheet = id; render(); },
+  skip: () => { S.reservation.endsAt -= 5 * 60 * 1000; tick(); },
+  reset: () => { S = freshState(); render(); },
+  closesheet: () => { S.sheet = null; render(); },
+  cancelres: () => { const n = S.reservation.spot; releaseSpot(); toast(`Spot ${n} is back in the open pool`); go('find'); },
+  arrive: () => { S.reservation.arrived = true; toast('Sensor confirmed your arrival'); render(); },
+  leave: () => { releaseSpot(); toast('Thanks. The spot is open again'); go('find'); },
+  addcar: () => { S.adding = true; render(); document.getElementById('plate').focus(); },
+  canceladd: () => { S.adding = false; render(); },
+  savecar: () => {
+    const plate = document.getElementById('plate').value.trim().toUpperCase();
+    const car = document.getElementById('car').value.trim();
+    if (!plate) { document.getElementById('plate').focus(); return; }
+    S.vehicles.push({ plate, car: car || 'Vehicle' }); S.adding = false; toast(`${plate} added to your permit`); render();
+  },
+  removecar: i => { const [v] = S.vehicles.splice(Number(i), 1); toast(`${v.plate} removed`); render(); },
+  up: i => { i = Number(i); [S.preferred[i - 1], S.preferred[i]] = [S.preferred[i], S.preferred[i - 1]]; render(); },
+  down: i => { i = Number(i); [S.preferred[i + 1], S.preferred[i]] = [S.preferred[i], S.preferred[i + 1]]; render(); },
+};
+app.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]');
+  if (el && !el.disabled) actions[el.dataset.act](el.dataset.id);
+});
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  const k = e.key.toLowerCase();
+  if (k === 'r') { S = freshState(); render(); }
+  if (k === 'f' && S.reservation && !S.reservation.arrived) { S.reservation.endsAt -= 5 * 60 * 1000; tick(); }
+});
+function tick() {
+  const r = S.reservation;
+  if (!r || r.arrived) return;
+  if (remaining() === 0) { releaseSpot(); S.sheet = 'expired'; S.view = 'reserve'; render(); return; }
+  const t = document.getElementById('timer'), bar = document.getElementById('bar');
+  if (t) t.textContent = fmt(remaining());
+  if (bar) { bar.setAttribute('stroke-dashoffset', ringOffset()); bar.classList.toggle('low', remaining() <= 300); }
+}
+setInterval(tick, 1000);
+// Other drivers come and go: nudge the open counts so the map feels live.
+setInterval(() => {
+  const busy = S.lots.filter(l => l.elsewhere > 0);
+  const l = busy[Math.floor(Math.random() * busy.length)];
+  l.elsewhere = Math.max(5, l.elsewhere + (Math.random() < 0.6 ? -1 : 1) * (1 + Math.floor(Math.random() * 2)));
+  if (S.signedIn && S.view === 'find' && !S.sheet) render();
+}, 3500);
+render();
+</script>
+</body>
+</html>
